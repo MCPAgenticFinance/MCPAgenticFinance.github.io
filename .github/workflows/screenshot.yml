@@ -1,0 +1,31 @@
+name: Opt-in form screenshot
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/screenshot.yml', 'sms/index.html', 'style.css']
+permissions:
+  contents: write
+jobs:
+  shot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for Pages to publish the latest page
+        run: |
+          for i in $(seq 1 30); do
+            curl -s https://mcpagenticfinance.github.io/sms/ | cmp -s - sms/index.html && break
+            sleep 10
+          done
+      - name: Capture desktop and mobile screenshots
+        run: |
+          google-chrome --headless=new --no-sandbox --disable-gpu --hide-scrollbars --force-device-scale-factor=2 --window-size=1100,1013 --screenshot=sms/optin-form.png https://mcpagenticfinance.github.io/sms/
+          google-chrome --headless=new --no-sandbox --disable-gpu --hide-scrollbars --force-device-scale-factor=2 --window-size=390,1500 --screenshot=sms/optin-form-mobile.png https://mcpagenticfinance.github.io/sms/
+          ls -la sms
+      - name: Commit screenshots
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add sms/optin-form.png sms/optin-form-mobile.png
+          git diff --cached --quiet || git commit -m 'Update opt-in form screenshots'
+          git push
